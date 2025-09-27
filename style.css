@@ -279,7 +279,7 @@ header p {
     margin-bottom: 0.5rem;
 }
 .logo-container img {
-    height: 3rem;
+    height: 2.5rem; /* 로고 크기 축소 */
     width: auto;
     object-fit: contain;
 }
@@ -344,11 +344,11 @@ header p {
     font-size: 1.125rem;
     font-weight: bold;
     color: #1e293b;
-    margin-top: 0.25rem;
+    margin-top: 0; /* 학번과 이름 간격 축소 */
 }
 .student-id {
     font-size: 1rem;
-    color: #64748b;
+    color: #2563eb;
 }
 .input-description {
     font-size: 0.875rem;
