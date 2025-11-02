@@ -3,12 +3,675 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>랜덤 좌석표 생성기</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="print.css" media="print">
+    <title>랜덤 좌석표 생성기 (Excel/CSV 지원)</title>
+    <!-- 엑셀 파일 처리를 위한 SheetJS 라이브러리 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* style.css */
+        /* General Body Styles */
+        body {
+            background-color: #f1f5f9;
+            font-family: sans-serif;
+            color: #334155;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        /* App container */
+        #root {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1rem;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        @media (min-width: 640px) {
+            main {
+                padding: 1.5rem;
+            }
+        }
+        @media (min-width: 1024px) {
+            main {
+                padding: 2rem;
+            }
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #2563eb, #4f46e5);
+            color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.25rem;
+            font-weight: bold;
+        }
+
+        header p {
+            font-size: 1.125rem;
+            color: #dbeafe;
+            margin-top: 0.5rem;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+
+        /* Controls Section */
+        .controls {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 2rem;
+        }
+
+        .controls h2 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.75rem;
+            margin-top: 0;
+        }
+
+        .space-y-4 > * + * {
+            margin-top: 1rem;
+        }
+        .space-y-6 > * + * {
+            margin-top: 1.5rem;
+        }
+
+        .input-field {
+            margin-bottom: 1rem;
+        }
+
+        .input-field label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 0.25rem;
+        }
+
+        .input-field input {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .input-field input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #4f46e5;
+            border-color: #4f46e5;
+        }
+
+        /* Buttons */
+        .button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569;
+            background-color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background-color: #f8fafc;
+        }
+
+        .button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #4f46e5;
+        }
+
+        .button svg {
+            height: 1.25rem;
+            width: 1.25rem;
+            color: #64748b;
+        }
+
+        .primary-button {
+            color: white;
+            background-color: #22c55e;
+            border-color: transparent;
+        }
+
+        .primary-button:hover {
+            background-color: #16a34a;
+        }
+
+        .primary-button:disabled {
+            background-color: #a5b4fc;
+            cursor: not-allowed;
+        }
+
+        .button:disabled {
+            background-color: #e2e8f0;
+            cursor: not-allowed;
+        }
+
+
+        /* Chart Display */
+        .chart-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+        .chart-placeholder {
+            text-align: center;
+        }
+        .chart-placeholder-icon {
+            margin: 0 auto;
+            height: 3rem;
+            width: 3rem;
+            color: #94a3b8;
+        }
+        .chart-placeholder h3 {
+            margin-top: 0.5rem;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .chart-placeholder p {
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .seating-chart-container {
+            width: 100%;
+        }
+        .seating-chart {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            break-inside: avoid;
+            margin-bottom: 2rem;
+        }
+        .seating-chart h2 {
+            font-size: 2.25rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 0.25rem;
+        }
+        .seating-chart .chart-info {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+        .seating-chart .chart-details {
+            text-align: center;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .seating-chart .subject {
+            color: #dc2626;
+        }
+        .seating-chart .teacher {
+            color: #2563eb;
+        }
+        .teacher-desk {
+            display: flex;
+            justify-content: center;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+        }
+        .teacher-desk-box {
+            position: relative;
+            border: 2px solid #334155;
+            border-radius: 0.375rem;
+            width: 12rem;
+            height: 2.5rem;
+            font-weight: bold;
+            color: #334155;
+            background-color: #e2e8f0;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0.5rem;
+        }
+        .logo-container img {
+            height: 2.5rem; /* 로고 크기 축소 */
+            width: auto;
+            object-fit: contain;
+        }
+
+        /* ✨ [변경] 그리드 배경색을 약간 어둡게 조정 */
+        .seating-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem; /* 셀 사이 간격 추가 */
+            background-color: #e2e8f0; /* 배경색 변경 */
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem; /* 안쪽 여백 추가 */
+            border-radius: 0.5rem; /* 모서리 둥글게 */
+        }
+
+        /* ✨ [변경] 학생 셀 컨테이너의 배경색과 패딩 제거 */
+        .student-card-container {
+            aspect-ratio: 3 / 4;
+            background-color: transparent; /* 배경색 제거 */
+            padding: 0; /* 패딩 제거 */
+        }
+
+        /* ✨ [변경] 학생 셀 스타일을 입체적으로 변경 */
+        .student-card {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.375rem;
+            padding: 0.375rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            text-align: center;
+            word-break: break-word;
+            background-color: #ffffff; /* 흰색 배경 */
+            /* 입체감을 위한 테두리 색상 조정 */
+            border: 1px solid;
+            border-color: #e2e8f0 #cbd5e1 #cbd5e1 #e2e8f0;
+            /* 그림자 효과 강화 */
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .student-card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .seat-number {
+            text-align: left;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .student-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .student-name {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #1e293b;
+            margin-top: 0; /* 학번과 이름 간격 축소 */
+        }
+        .student-id {
+            font-size: 1rem;
+            color: #2563eb;
+        }
+        .input-description {
+            font-size: 0.875rem;
+            color: #475569;
+            margin-top: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .file-info {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .error-message {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #dc2626;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .hidden {
+            display: none;
+        }
+        /* style.css 파일 맨 아래에 추가 */
+
+        .seating-chart-container {
+            width: 100%;
+        }
+
+        .seating-chart {
+            /* 화면에서 A4 세로 비율(1 : 1.414)과 유사하게 보이도록 설정 */
+            /* 이렇게 하면 인쇄될 모양을 예측하기 쉬워집니다. */
+            aspect-ratio: 1 / 1.414;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .seating-chart-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .seating-grid {
+            flex-grow: 1;
+        }
+
+        /* print.css */
+        @media print {
+            /* A4 용지 크기와 여백 설정 */
+            @page {
+                size: A4 portrait;
+                margin: 1cm;
+            }
+
+            /* 헤더와 왼쪽 입력창 등 불필요한 모든 요소를 확실하게 제거합니다. */
+            header,
+            .controls,
+            footer,
+            .lg\:col-span-1 { /* 왼쪽 컬럼 */
+                display: none !important;
+            }
+            
+            /*
+             * == Gemini 로고 등 외부 요소를 숨기기 위한 코드 ==
+             */
+            iframe,
+            [style*="z-index: 999999"] {
+                display: none !important;
+            }
+
+
+            /* 인쇄될 영역의 기본 스타일 초기화 */
+            body, main, .grid, .chart-display, .seating-chart-container {
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: none !important;
+            }
+
+            /* ✨ [변경] 각 좌석표가 한 페이지를 꽉 채우도록 설정하고 불필요한 여백 제거 */
+            .seating-chart {
+                width: 100%;
+                height: 100%;
+                box-shadow: none !important;
+                border: 1px solid #777 !important;
+                page-break-inside: avoid;
+                display: flex;
+                flex-direction: column;
+                margin: 0 !important; /* 화면(style.css)의 margin-bottom 제거 */
+            }
+
+            /* ✨ [변경] 마지막 좌석표가 아닐 경우에만 페이지를 나누도록 수정 */
+            .seating-chart:not(:last-child) {
+                page-break-after: always;
+            }
+            
+            .seating-chart-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                padding: 0.5cm;
+            }
+            
+            .seating-grid-wrapper {
+                flex-grow: 1; 
+                display: flex; 
+                flex-direction: column;
+            }
+
+            .seating-grid {
+                flex-grow: 1;
+            }
+            
+            /* 제목, 정보 부분 폰트 크기 */
+            .seating-chart h2 { font-size: 26pt; }
+            .seating-chart .chart-info { font-size: 15pt; }
+            .seating-chart .chart-details { font-size: 14pt; }
+            .teacher-desk-box { font-size: 13pt; padding: 0.3rem; height: auto; }
+
+            /* 제목, 정보, 교탁 부분의 상하 간격 최소화 */
+            .seating-chart h2,
+            .seating-chart .chart-info,
+            .seating-chart .chart-details,
+            .teacher-desk {
+                margin-top: 0 !important;
+                margin-bottom: 0.2cm !important;
+                line-height: 1.2;
+            }
+            
+            .teacher-desk {
+                margin-top: 0.4cm !important;
+            }
+
+            /* 학생 이름과 학번 사이의 줄 간격 축소 */
+            .student-info p {
+                margin: 0 !important;
+                line-height: 1.1 !important;
+            }
+            
+            .student-card-container {
+                aspect-ratio: auto !important;
+            }
+            .student-card {
+                padding: 0.2rem !important;
+            }
+            
+            /* 좌석 번호, 학생 이름, 학번 폰트 크기 */
+            .student-name { font-size: 13pt !important; font-weight: bold; }
+            .student-id { 
+                font-size: 11pt !important;
+                color: #2563eb !important;
+                margin-bottom: 0.15cm !important; /* 이름과 간격 추가 */
+            }
+            .seat-number { font-size: 10pt !important; }
+
+            .logo-container img {
+                height: 32px !important; 
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="root"></div>
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const root = document.getElementById('root');
+            if (!root) { console.error('Root element not found!'); return; }
+
+            let students = [], chartInfo = { schoolYear: '2025', grade: '2', semester: '1', subject: '', teacher: '' }, seatingGrid = null, error = '', fileName = '', logo = null;
+
+            function render() {
+                root.innerHTML = `<main><header><h1>랜덤 좌석표 생성기</h1><p>학생 명렬표(CSV, Excel)를 업로드하고 자리 배치를 생성하세요.</p></header><div class="grid"><div class="lg:col-span-1">${Controls()}</div><div class="lg:col-span-2 chart-display">${ChartDisplay()}</div></div></main><footer>© 2025 Wonmook High School. All Rights Reserved.</footer>`;
+                addEventListeners();
+            }
+
+            function Controls() {
+                return `<div class="controls space-y-6"><h2>설정</h2><div class="space-y-4"><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;"><div class="input-field"><label for="schoolYear">학년도</label><input type="text" id="schoolYear" name="schoolYear" value="${chartInfo.schoolYear}"></div><div class="input-field"><label for="grade">학년</label><input type="text" id="grade" name="grade" value="${chartInfo.grade}"></div></div><div class="input-field"><label for="semester">학기</label><input type="text" id="semester" name="semester" value="${chartInfo.semester}"></div><div class="input-field"><label for="subject">선택과목명 (학급명)</label><input type="text" id="subject" name="subject" value="${chartInfo.subject}"></div><div class="input-field"><label for="teacher">담당교사명</label><input type="text" id="teacher" name="teacher" value="${chartInfo.teacher}"></div></div><div class="space-y-4"><div><label>학생 명렬표 (CSV, Excel)</label><p class="input-description">파일의 1열은 '학번', 2열은 '이름'이어야 합니다.</p><input type="file" id="file-input" class="hidden" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"><button type="button" id="file-button" class="button"><span>파일 선택</span></button>${fileName ? `<p class="file-info">선택된 파일: ${fileName}</p>` : ''}${error ? `<p class="error-message">${error}</p>` : ''}</div><div><label>학교 로고 (선택)</label><input type="file" id="logo-input" class="hidden" accept="image/*"><button type="button" id="logo-button" class="button"><span>로고 업로드</span></button></div></div><div style="border-top: 1px solid #e2e8f0; padding-top: 1.5rem;" class="space-y-4"><button type="button" id="randomize-button" class="button primary-button" ${students.length === 0 ? 'disabled' : ''}><span>자리 배치</span></button><button type="button" id="print-button" class="button" ${!seatingGrid ? 'disabled' : ''}><span>인쇄 및 PDF로 저장</span></button></div></div>`;
+            }
+
+            function ChartDisplay() {
+                if (!seatingGrid) { return `<div class="text-center chart-placeholder"><h3>좌석표가 여기에 표시됩니다.</h3><p>정보를 입력하고 '자리 배치' 버튼을 누르세요.</p></div>`; }
+                return `<div class="seating-chart-container">${SeatingChart('student-chart', '좌석표 (학생 시점)', seatingGrid, true)}${SeatingChart('teacher-chart', '좌석표 (교사 시점)', seatingGrid, false)}</div>`;
+            }
+
+            function SeatingChart(id, title, grid, isStudentView) {
+                const displayGrid = isStudentView ? [...grid].reverse() : grid.map(row => [...row].reverse());
+                const getSeatNumber = (r, c) => isStudentView ? (r * 6 + c + 1) : ((4 - r) * 6 + (5 - c) + 1);
+                const gridHtml = displayGrid.map((row, r) => row.map((student, c) => `<div class="student-card-container"><div class="student-card"><div class="seat-number">${getSeatNumber(r, c)}</div>${student ? `<div class="student-info"><p class="student-id">${student.studentId}</p><p class="student-name">${student.name}</p></div>` : `<div class="student-info"></div>`}</div></div>`).join('')).join('');
+
+                return `<div id="${id}" class="seating-chart"><div class="seating-chart-content"><h2>${title}</h2><p class="chart-info">${chartInfo.schoolYear}학년도 ${chartInfo.semester}학기 ${chartInfo.grade}학년</p><div class="chart-details"><p class="subject">선택과목명 (학급명): ${chartInfo.subject}</p><p class="teacher">담당교사명: ${chartInfo.teacher}</p></div><div class="seating-grid-wrapper">${isStudentView ? `<div class="teacher-desk"><div class="teacher-desk-box">교탁</div></div>` : ''}<div style="flex-grow: 1; display: flex; flex-direction: column;">${logo ? `<div class="logo-container"><img src="${logo}" alt="학교 로고"></div>` : ''}<div class="seating-grid">${gridHtml}</div></div>${!isStudentView ? `<div class="teacher-desk" style="margin-top: auto;"><div class="teacher-desk-box">교탁</div></div>` : ''}</div></div></div>`;
+            }
+            
+            function handleInfoChange(e) { chartInfo[e.target.name] = e.target.value; if (seatingGrid) render(); }
+            
+            function handleFileChange(e) {
+                const file = e.target.files?.[0]; 
+                if (!file) return;
+
+                fileName = file.name;
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        const fileData = event.target.result;
+                        let data;
+                        if (file.type === 'text/csv') {
+                            data = parseCSV(fileData);
+                        } else if (file.type.includes('spreadsheetml') || file.type.includes('ms-excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                            data = parseExcel(fileData);
+                        } else {
+                            throw new Error('CSV 또는 Excel 파일만 업로드할 수 있습니다.');
+                        }
+                        
+                        // 헤더 검사 (학번, 이름)
+                        const header = data[0].map(h => String(h).trim()); // 첫 번째 행을 헤더로 간주
+                        if (!header.includes('학번') || !header.includes('이름')) {
+                            throw new Error('파일의 첫 번째 행에 "학번"과 "이름" 열이 포함되어야 합니다.');
+                        }
+
+                        const studentIdIndex = header.indexOf('학번');
+                        const nameIndex = header.indexOf('이름');
+                        
+                        students = data.slice(1).map(row => {
+                            const studentId = row[studentIdIndex] ? String(row[studentIdIndex]).trim() : '';
+                            const name = row[nameIndex] ? String(row[nameIndex]).trim() : '';
+                            return { studentId, name };
+                        }).filter(s => s.studentId && s.name); // 학번과 이름이 모두 있는 경우만 필터링
+
+                        if (students.length === 0) {
+                            throw new Error('학생 데이터를 파싱할 수 없습니다. 파일 형식을 확인해주세요.');
+                        }
+                        error = '';
+                    } catch (err) { 
+                        error = err.message; 
+                        students = []; 
+                        fileName = ''; 
+                    } finally { 
+                        render(); 
+                    }
+                };
+
+                reader.onerror = () => { error = '파일 읽기 오류'; students = []; fileName = ''; render(); };
+
+                if (file.type === 'text/csv') {
+                    reader.readAsText(file, 'UTF-8'); // CSV는 텍스트로 읽기
+                } else {
+                    reader.readAsArrayBuffer(file); // Excel은 ArrayBuffer로 읽기
+                }
+            }
+            
+            function parseCSV(csvData) {
+                const rows = csvData.split('\n').map(row => row.trim()).filter(row => row);
+                return rows.map(row => row.split(',').map(cell => cell.trim()));
+            }
+
+            function parseExcel(excelData) {
+                const workbook = XLSX.read(excelData, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                // header: 1 옵션으로 첫 행을 헤더로, defval: '' 로 빈 셀을 빈 문자열로 처리
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }); 
+                return jsonData;
+            }
+
+            function handleLogoChange(e) {
+                const file = e.target.files?.[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => { logo = reader.result; if (seatingGrid) render(); };
+                    reader.readAsDataURL(file);
+                } else { logo = null; if (seatingGrid) render(); }
+            }
+
+            function handleRandomize() {
+                if (students.length === 0) { error = '먼저 학생 명렬표를 업로드해주세요.'; render(); return; }
+                error = '';
+                const shuffled = [...students].sort(() => Math.random() - 0.5);
+                const grid = Array(5).fill(null).map(() => Array(6).fill(null));
+                let index = 0;
+                for (let r = 4; r >= 0; r--) { for (let c = 0; c < 6; c++) { if (index < shuffled.length) { grid[r][c] = shuffled[index++]; } } }
+                seatingGrid = grid;
+                render();
+            }
+
+            function addEventListeners() {
+                document.getElementById('schoolYear').addEventListener('input', handleInfoChange);
+                document.getElementById('grade').addEventListener('input', handleInfoChange);
+                document.getElementById('semester').addEventListener('input', handleInfoChange);
+                document.getElementById('subject').addEventListener('input', handleInfoChange);
+                document.getElementById('teacher').addEventListener('input', handleInfoChange);
+                document.getElementById('file-button').addEventListener('click', () => document.getElementById('file-input').click());
+                document.getElementById('file-input').addEventListener('change', handleFileChange);
+                document.getElementById('logo-button').addEventListener('click', () => document.getElementById('logo-input').click());
+                document.getElementById('logo-input').addEventListener('change', handleLogoChange);
+                document.getElementById('randomize-button').addEventListener('click', handleRandomize);
+                document.getElementById('print-button').addEventListener('click', () => window.print());
+            }
+
+            render();
+        });
+    </script>
 </body>
 </html>
